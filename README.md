@@ -6,8 +6,7 @@
 
 <p align="center">App de notas para desktop feito com Tauri, React e Rust.</p>
 
-<!-- Adicione um print aqui: salve em docs/screenshot.png e descomente a linha abaixo -->
-<!-- ![will-notes](docs/screenshot.png) -->
+![will-notes](docs/screenshot.png)
 
 ## Funcionalidades
 
