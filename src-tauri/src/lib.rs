@@ -27,6 +27,7 @@ pub fn run() {
             notes::list_notes,
             notes::save_note,
             notes::delete_note,
+            notes::export_note,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

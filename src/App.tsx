@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { NotebookPen, Plus, Trash2 } from "lucide-react";
+import { Download, NotebookPen, Pin, Plus, Trash2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
 import "./App.css";
 
@@ -10,7 +10,8 @@ type Note = {
   id: string;
   title: string;
   content: string;
-  category_id: string | null;
+  category: string | null;
+  pinned: boolean;
   created_at: string;
   updated_at: string;
 };
@@ -21,6 +22,7 @@ export default function App() {
   const [notes, setNotes] = useState<Note[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [textoBusca, setTextoBusca] = useState("");
+  const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
   // One pending save per note, so switching notes mid-typing never drops the previous save
   const saveTimers = useRef(new Map<string, number>());
 
@@ -34,18 +36,34 @@ export default function App() {
       .finally(() => invoke("close_splash"));
   }, []);
 
+  // Ctrl+N creates a note. No dependency array: re-subscribes every render, so it always calls the
+  // latest createNote (which reads categoriaFiltro). The cleanup removes the previous listener.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.ctrlKey && e.key.toLowerCase() === "n") {
+        e.preventDefault(); // WebView2 would otherwise open a new window
+        createNote();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  });
+
   const sorted = newestFirst(notes);
   const busca = textoBusca.toLowerCase();
   const filtered = sorted.filter((item) => {
+    if (categoriaFiltro && item.category !== categoriaFiltro) return false;
     return item.title.toLowerCase().includes(busca) || item.content.toLowerCase().includes(busca);
   });
+  // Categories are just the distinct names used by notes
+  const categorias = [...new Set(notes.map((n) => n.category).filter((c) => c !== null))].sort();
   const selected = notes.find((n) => n.id === selectedId);
   const texto = selected?.content.trim() ?? "";
   const palavras = texto.split(/\s+/).filter(Boolean).length;
 
   async function createNote() {
     const now = new Date().toISOString();
-    const note: Note = { id: crypto.randomUUID(), title: "", content: "", category_id: null, created_at: now, updated_at: now };
+    const note: Note = { id: crypto.randomUUID(), title: "", content: "", category: categoriaFiltro, pinned: false, created_at: now, updated_at: now };
     try {
       await invoke("save_note", { note });
       setNotes((ns) => [...ns, note]);
@@ -55,7 +73,7 @@ export default function App() {
     }
   }
 
-  function editNote(patch: Partial<Pick<Note, "title" | "content">>) {
+  function editNote(patch: Partial<Pick<Note, "title" | "content" | "category" | "pinned">>) {
     if (!selected) return;
     const note = { ...selected, ...patch, updated_at: new Date().toISOString() };
     setNotes((ns) => ns.map((n) => (n.id === note.id ? note : n)));
@@ -69,6 +87,14 @@ export default function App() {
         invoke("save_note", { note }).catch(fail);
       }, 400),
     );
+  }
+
+  async function exportNote(note: Note) {
+    try {
+      if (await invoke<boolean>("export_note", { title: note.title, content: note.content })) toast.success("Nota exportada");
+    } catch (err) {
+      fail(err);
+    }
   }
 
   async function deleteNote(note: Note) {
@@ -101,6 +127,21 @@ export default function App() {
         onChange={(e) => setTextoBusca( e.target.value )}
         className="mx-2 mb-2 rounded border border-zinc-200 bg-transparent px-2 py-1 text-sm outline-none focus:border-violet-500 dark:border-zinc-800"
         type="text" />
+        {categorias.length > 0 && (
+          <div className="mx-2 mb-2 flex flex-wrap gap-1">
+            {[null, ...categorias].map((c) => (
+              <button
+                key={c ?? ""}
+                onClick={() => setCategoriaFiltro(c)}
+                className={`rounded-full px-2 py-0.5 text-xs ${
+                  c === categoriaFiltro ? "bg-violet-500 text-white" : "bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
+                }`}
+              >
+                {c ?? "Todas"}
+              </button>
+            ))}
+          </div>
+        )}
         <ul className="flex-1 overflow-y-auto px-2 pb-2">
           {filtered.map((n) => (
             <li key={n.id}>
@@ -110,7 +151,10 @@ export default function App() {
                   n.id === selectedId ? "bg-violet-100 dark:bg-violet-500/20" : "hover:bg-zinc-100 dark:hover:bg-zinc-900"
                 }`}
               >
-                <div className="truncate text-sm font-medium">{n.title || "Sem título"}</div>
+                <div className="flex items-center gap-1 truncate text-sm font-medium">
+                  {n.pinned && <Pin size={12} className="shrink-0 text-violet-500" />}
+                  {n.title || "Sem título"}
+                </div>
                 <div className="truncate text-xs text-zinc-500">{n.content.split("\n")[0] || "Vazia"}</div>
               </button>
             </li>
@@ -127,6 +171,33 @@ export default function App() {
               placeholder="Título"
               className="flex-1 bg-transparent text-xl font-semibold outline-none"
             />
+            {/* datalist = native autocomplete with the existing categories */}
+            <input
+              value={selected.category ?? ""}
+              onChange={(e) => editNote({ category: e.target.value.trim() || null })}
+              placeholder="Categoria"
+              list="categorias"
+              className="w-32 rounded border border-zinc-200 bg-transparent px-2 py-1 text-sm outline-none focus:border-violet-500 dark:border-zinc-800"
+            />
+            <datalist id="categorias">
+              {categorias.map((c) => (
+                <option key={c} value={c} />
+              ))}
+            </datalist>
+            <button
+              onClick={() => editNote({ pinned: !selected.pinned })}
+              title={selected.pinned ? "Desafixar" : "Fixar no topo"}
+              className={`rounded p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${selected.pinned ? "text-violet-500" : "text-zinc-500"}`}
+            >
+              <Pin size={18} />
+            </button>
+            <button
+              onClick={() => exportNote(selected)}
+              title="Exportar .md"
+              className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
+            >
+              <Download size={18} />
+            </button>
             <button
               onClick={() => deleteNote(selected)}
               title="Apagar"
@@ -163,5 +234,6 @@ export default function App() {
   );
 }
 
-// ISO timestamps sort correctly as plain strings
-const newestFirst = (ns: Note[]) => [...ns].sort((a, b) => b.updated_at.localeCompare(a.updated_at));
+// Pinned first, then newest. ISO timestamps sort correctly as plain strings
+const newestFirst = (ns: Note[]) =>
+  [...ns].sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updated_at.localeCompare(a.updated_at));
