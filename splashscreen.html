@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <title>will-repo</title>
+    <style>
+      /* Self-contained: shows instantly, before React and Tailwind load in the main window */
+      :root {
+        --bg: #0f1117;
+        --fg: #e6e8ef;
+        --muted: #8b91a5;
+        --primary: #7c5cff;
+        --lane: #22d3ee;
+        --border: #252a38;
+      }
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        height: 100%;
+        overflow: hidden;
+        user-select: none;
+        cursor: default;
+      }
+      body {
+        display: grid;
+        place-items: center;
+        background:
+          radial-gradient(420px circle at 50% 38%, rgb(124 92 255 / 0.18), transparent 70%),
+          var(--bg);
+        color: var(--fg);
+        font-family: "Geist Variable", "Segoe UI Variable", sans-serif;
+        border: 1px solid var(--border);
+      }
+      main {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        width: 260px;
+      }
+      .logo {
+        display: grid;
+        place-items: center;
+        width: 72px;
+        height: 72px;
+        border-radius: 20px;
+        background: var(--primary);
+        color: white;
+        animation: glow 2.2s ease-in-out infinite;
+      }
+      @keyframes glow {
+        0%,
+        100% {
+          box-shadow: 0 0 22px rgb(124 92 255 / 0.45);
+        }
+        50% {
+          box-shadow: 0 0 46px rgb(124 92 255 / 0.85);
+        }
+      }
+      h1 {
+        margin-top: 20px;
+        font-size: 22px;
+        font-weight: 600;
+        letter-spacing: -0.02em;
+      }
+      .bar {
+        position: relative;
+        width: 100%;
+        height: 3px;
+        margin-top: 26px;
+        overflow: hidden;
+        border-radius: 99px;
+        background: var(--border);
+      }
+      .bar span {
+        position: absolute;
+        inset: 0 auto 0 0;
+        width: 8%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--primary), var(--lane));
+        box-shadow: 0 0 12px var(--primary);
+        transition: width 0.35s ease;
+      }
+      #status {
+        margin-top: 12px;
+        height: 16px;
+        font-family: "Geist Mono Variable", "Cascadia Code", monospace;
+        font-size: 11px;
+        color: var(--muted);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+      }
+      #version {
+        position: fixed;
+        bottom: 12px;
+        font-family: "Geist Mono Variable", "Cascadia Code", monospace;
+        font-size: 10px;
+        color: rgb(139 145 165 / 0.6);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <div class="logo">
+        <!-- lucide notebook-pen -->
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+          <path d="M8 3v18" />
+          <path d="M3 8h5" />
+          <path d="M3 16h5" />
+          <path d="m18.5 2.5 3 3L14 13l-4 1 1-4Z" />
+        </svg>
+      </div>
+      <h1>will-notes</h1>
+      <div class="bar"><span id="progress"></span></div>
+      <p id="status">Iniciando...</p>
+    </main>
+    <p id="version"></p>
+    <script type="module" src="/src/splash.ts"></script>
+  </body>
+</html>

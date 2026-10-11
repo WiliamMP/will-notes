@@ -1,47 +1,23 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Anotações</title>
-    <link rel="icon" type="image/x-icon" href="Logos/file_type_html_icon_130541.ico">
-    <link rel="stylesheet" href="style.css">
-    <link rel="stylesheet" href="fontes.css">
-    
-</head>
-<body>
-    <!--BOTTOM PRETO DA PÁGINA-->
-    <a href="index.html"><img src="Logos/Loogo.png" style="position: absolute;width: 5%;margin-top: 25px;margin-left: 25px;"></a>
-    <div style="position: static;"></div>
-    <!--INTRODUÇÃO DA PÁGINA-->
-    <h1>BEM-VINDO</h1>
-    <p>Está é minha página de anotações, Bem-Vindo!
-    <br>Nos links a sua direita estará os conteudos
-    <br> das minhas aulas do curso de desenvovledor WEB.</p>
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>will-notes</title>
+    <script>
+      // Apply theme before React loads, avoids a white flash on startup
+      try {
+        const t = localStorage.getItem("will-notes.theme");
+        const dark = t === "dark" || (t !== "light" && matchMedia("(prefers-color-scheme: dark)").matches);
+        document.documentElement.classList.toggle("dark", dark);
+      } catch {}
+    </script>
+  </head>
 
-    <!--LINKS-->
-    <hr width="2" size="200" style="position: absolute;left: 1150px;bottom: 100px;">
-    <a href="exercicios.html" id="exercicio" target="_blank" class="canto" onclick="purple()" style="font-family: Mario-world;font-size: small;">Exercicios</a>
-    <a href="testes.html" target="_blank" id="testes" class="canto" style="bottom: 200px; font-family: Tesla;">Testes</a>
-    <a href="FormularioExtra/form.html" target="_blank" id="formu" class="canto" style="bottom: 165px; font-family: Star-Wars;font-size: small;">Formulário</a>
-
-
-    <!--CONTATO-->
-    <br>
-    <br>
-    <br>
-    <p><b>Abaixo um QR Code com informações <br>
-    <img src="QR-codes/QRCode_Fácil.png" class="center">
-    </b>
-    Caso não consiga usar QR Code em seu dispositivo 
-    <i><a href="https://www.youtube.com/channel/UCNT69-Cn1wHqbXuxHUMISGw" target="_blank">Clique Aqui</a>.</i>
-
-</p>
-    <!--DIREITOS AO AUTOR-->
-    <hr>
-    <footer>Todos os direitos reservados ®.</footer>
-    <div style="position: static;" class="baixo"></div>
-    
-</body>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+  
 </html>
