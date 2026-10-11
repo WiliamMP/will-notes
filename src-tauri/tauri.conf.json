@@ -18,7 +18,8 @@
         "height": 680,
         "minWidth": 600,
         "minHeight": 400,
-        "visible": false
+        "visible": false,
+        "decorations": false
       },
       {
         "label": "splashscreen",

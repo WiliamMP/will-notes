@@ -1,0 +1,245 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/geist";
+@import "@fontsource-variable/geist-mono";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+    --font-heading: var(--font-sans);
+    --font-sans: 'Geist Variable', 'Segoe UI Variable', sans-serif;
+    --font-mono: 'Geist Mono Variable', 'Cascadia Code', monospace;
+    --color-success: var(--success);
+    --color-warning: var(--warning);
+    --color-diff-add: var(--diff-add);
+    --color-diff-del: var(--diff-del);
+    --color-glow: var(--glow);
+    --color-lane-1: var(--lane-1);
+    --color-lane-2: var(--lane-2);
+    --color-lane-3: var(--lane-3);
+    --color-lane-4: var(--lane-4);
+    --color-lane-5: var(--lane-5);
+    --color-lane-6: var(--lane-6);
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+    --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
+    --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;
+    --animate-shiny-text: shiny-text 8s infinite;
+  @keyframes shimmer-slide {
+  to {
+    transform: translate(calc(100cqw - 100%), 0);
+        }
+    }
+  @keyframes spin-around {
+  0% {
+    transform: translateZ(0) rotate(0);
+        }
+  15%, 35% {
+    transform: translateZ(0) rotate(90deg);
+        }
+  65%, 85% {
+    transform: translateZ(0) rotate(270deg);
+        }
+  100% {
+    transform: translateZ(0) rotate(360deg);
+        }
+    }
+  @keyframes shiny-text {
+  0%, 90%, 100% {
+    background-position: calc(-100% - var(--shiny-width)) 0;
+        }
+  30%, 60% {
+    background-position: calc(100% + var(--shiny-width)) 0;
+        }
+    }
+}
+
+/*
+  Neon theme: personal design system tokens.
+  shadcn components read these variables; change them here and every app follows
+  (like a VCL Style in Delphi). Light = :root, dark = .dark (see src/hooks/use-theme.ts).
+*/
+:root {
+    --background: #f7f8fb;
+    --foreground: #1a1d26;
+    --card: #ffffff;
+    --card-foreground: #1a1d26;
+    --popover: #ffffff;
+    --popover-foreground: #1a1d26;
+    --primary: #6a46ff;
+    --primary-foreground: #ffffff;
+    --secondary: #eef0f5;
+    --secondary-foreground: #1a1d26;
+    --muted: #e8ebf2;
+    --muted-foreground: #5d6478;
+    --accent: #ece8ff;
+    --accent-foreground: #4a2fd0;
+    --destructive: #e0244a;
+    --border: #e1e4ec;
+    --input: #c9cedb;
+    --ring: #6a46ff;
+    --radius: 0.5rem;
+    --sidebar: #eef0f5;
+    --sidebar-foreground: #1a1d26;
+    --sidebar-primary: #6a46ff;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #ece8ff;
+    --sidebar-accent-foreground: #4a2fd0;
+    --sidebar-border: #e1e4ec;
+    --sidebar-ring: #6a46ff;
+
+    /* Extra tokens (not part of shadcn) */
+    --success: #16a46c;
+    --warning: #c77d00;
+    --diff-add: rgb(22 164 108 / 0.12);
+    --diff-del: rgb(224 36 74 / 0.1);
+    --glow: transparent;
+    --lane-1: #6a46ff;
+    --lane-2: #0094c6;
+    --lane-3: #16a46c;
+    --lane-4: #d98a00;
+    --lane-5: #e0244a;
+    --lane-6: #c83fb3;
+    /* Contribution heatmap: 0 = no commits, 1..4 = more (validated ordinal ramp) */
+    --heat-0: #eef0f5;
+    --heat-1: #b9a8ff;
+    --heat-2: #8f74ff;
+    --heat-3: #6a46ff;
+    --heat-4: #3f22b8;
+    --chart-1: var(--lane-1);
+    --chart-2: var(--lane-2);
+    --chart-3: var(--lane-3);
+    --chart-4: var(--lane-4);
+    --chart-5: var(--lane-5);
+}
+
+.dark {
+    --background: #0f1117;
+    --foreground: #e6e8ef;
+    --card: #161922;
+    --card-foreground: #e6e8ef;
+    --popover: #161922;
+    --popover-foreground: #e6e8ef;
+    --primary: #7c5cff;
+    --primary-foreground: #ffffff;
+    --secondary: #1e2230;
+    --secondary-foreground: #e6e8ef;
+    --muted: #1e2230;
+    --muted-foreground: #8b91a5;
+    --accent: #221d3d;
+    --accent-foreground: #c4b5ff;
+    --destructive: #ff5c7a;
+    --border: #252a38;
+    --input: #343b4f;
+    --ring: #7c5cff;
+    --sidebar: #0b0d12;
+    --sidebar-foreground: #e6e8ef;
+    --sidebar-primary: #7c5cff;
+    --sidebar-primary-foreground: #ffffff;
+    --sidebar-accent: #221d3d;
+    --sidebar-accent-foreground: #c4b5ff;
+    --sidebar-border: #252a38;
+    --sidebar-ring: #7c5cff;
+
+    --success: #3ddc97;
+    --warning: #ffb547;
+    --diff-add: rgb(61 220 151 / 0.12);
+    --diff-del: rgb(255 92 122 / 0.12);
+    --glow: rgb(124 92 255 / 0.55);
+    --lane-1: #7c5cff;
+    --lane-2: #00d4ff;
+    --lane-3: #3ddc97;
+    --lane-4: #ffb547;
+    --lane-5: #ff5c7a;
+    --lane-6: #ff7ae6;
+    --heat-0: #1e2230;
+    --heat-1: #4b3aa3;
+    --heat-2: #6a4fe0;
+    --heat-3: #8f74ff;
+    --heat-4: #c4b5ff;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+    }
+  body {
+    @apply bg-background text-foreground;
+    }
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
+    }
+  html {
+    @apply font-sans;
+    }
+  html, body, #root {
+    height: 100%;
+    }
+  body {
+    /* Desktop app feel: no text selection on chrome */
+    user-select: none;
+    overflow: hidden;
+    font-size: 13px;
+    -webkit-font-smoothing: antialiased;
+    }
+  input, textarea, code, pre {
+    user-select: text;
+    }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    }
+  ::-webkit-scrollbar-thumb {
+    background: var(--input);
+    border: 3px solid transparent;
+    border-radius: 10px;
+    background-clip: padding-box;
+    }
+}
+
+/* Settings > Aparência > Animações = Desligadas: also stops the CSS animations
+   (dialogs, menus, toasts); motion components are handled by MotionProvider */
+html[data-motion="off"] *,
+html[data-motion="off"] *::before,
+html[data-motion="off"] *::after {
+  animation-duration: 0s !important;
+  animation-delay: 0s !important;
+  transition-duration: 0s !important;
+}

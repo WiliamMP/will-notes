@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Download, NotebookPen, Pin, Plus, Trash2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
-import "./App.css";
+import { dragWindow, WindowControls } from "./components/WindowControls";
 
 // Same shape as `Note` in src-tauri/src/notes.rs (serde keeps the snake_case names)
 type Note = {
@@ -111,125 +111,138 @@ export default function App() {
   }
   
   return (
-    <div className="flex h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
-      <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-200 dark:border-zinc-800">
-        <header className="flex items-center justify-between p-3">
-          <span className="flex items-center gap-2 font-semibold">
-            <NotebookPen size={18} className="text-violet-500" /> will-notes
-          </span>
-          <button onClick={createNote} title="Nova nota" className="rounded p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800">
-            <Plus size={18} />
+    <div className="flex h-screen flex-col">
+      <nav onMouseDown={dragWindow} className="flex h-10 shrink-0 items-end gap-1 border-b bg-sidebar pl-2 select-none">
+        <button
+            aria-label="Início"
+            title="Início"
+            onClick={() => setSelectedId(null)}
+            className="mr-2 grid size-7 shrink-0 place-items-center self-center rounded-md bg-primary/15 text-primary transition-shadow hover:shadow-[0_0_18px_var(--glow)]"
+          >
+            <NotebookPen size={18} />
           </button>
-        </header>
-        <input 
-        value={textoBusca}
-        placeholder="Pesquise o nome da nota"
-        onChange={(e) => setTextoBusca( e.target.value )}
-        className="mx-2 mb-2 rounded border border-zinc-200 bg-transparent px-2 py-1 text-sm outline-none focus:border-violet-500 dark:border-zinc-800"
-        type="text" />
-        {categorias.length > 0 && (
-          <div className="mx-2 mb-2 flex flex-wrap gap-1">
-            {[null, ...categorias].map((c) => (
-              <button
-                key={c ?? ""}
-                onClick={() => setCategoriaFiltro(c)}
-                className={`rounded-full px-2 py-0.5 text-xs ${
-                  c === categoriaFiltro ? "bg-violet-500 text-white" : "bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700"
-                }`}
-              >
-                {c ?? "Todas"}
-              </button>
-            ))}
-          </div>
-        )}
-        <ul className="flex-1 overflow-y-auto px-2 pb-2">
-          {filtered.map((n) => (
-            <li key={n.id}>
-              <button
-                onClick={() => setSelectedId(n.id)}
-                className={`w-full rounded px-2 py-1.5 text-left ${
-                  n.id === selectedId ? "bg-violet-100 dark:bg-violet-500/20" : "hover:bg-zinc-100 dark:hover:bg-zinc-900"
-                }`}
-              >
-                <div className="flex items-center gap-1 truncate text-sm font-medium">
-                  {n.pinned && <Pin size={12} className="shrink-0 text-violet-500" />}
-                  {n.title || "Sem título"}
-                </div>
-                <div className="truncate text-xs text-zinc-500">{n.content.split("\n")[0] || "Vazia"}</div>
-              </button>
-            </li>
-          ))}
-        </ul>
-      </aside>
-
-      {selected ? (
-        <main className="flex flex-1 flex-col">
-          <div className="flex items-center gap-2 border-b border-zinc-200 p-3 dark:border-zinc-800">
-            <input
-              value={selected.title}
-              onChange={(e) => editNote({ title: e.target.value })}
-              placeholder="Título"
-              className="flex-1 bg-transparent text-xl font-semibold outline-none"
-            />
-            {/* datalist = native autocomplete with the existing categories */}
-            <input
-              value={selected.category ?? ""}
-              onChange={(e) => editNote({ category: e.target.value.trim() || null })}
-              placeholder="Categoria"
-              list="categorias"
-              className="w-32 rounded border border-zinc-200 bg-transparent px-2 py-1 text-sm outline-none focus:border-violet-500 dark:border-zinc-800"
-            />
-            <datalist id="categorias">
-              {categorias.map((c) => (
-                <option key={c} value={c} />
+        <div onMouseDown={dragWindow} className="min-w-6 flex-1 self-stretch"></div>
+        <div className="my-2.5 ml-2 w-px self-stretch bg-border" />
+        <WindowControls />
+      </nav>
+      <div className="flex min-h-0 flex-1 bg-background text-foreground">
+        <aside className="flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
+          <header className="flex items-center justify-between p-3">
+            
+            <button onClick={createNote} title="Nova nota" className="rounded p-1.5 hover:bg-muted">
+              <Plus size={18} />
+            </button>
+          </header>
+          <input 
+          value={textoBusca}
+          placeholder="Pesquise o nome da nota"
+          onChange={(e) => setTextoBusca( e.target.value )}
+          className="mx-2 mb-2 rounded border border-input bg-transparent px-2 py-1 text-sm outline-none focus:border-ring"
+          type="text" />
+          {categorias.length > 0 && (
+            <div className="mx-2 mb-2 flex flex-wrap gap-1">
+              {[null, ...categorias].map((c) => (
+                <button
+                  key={c ?? ""}
+                  onClick={() => setCategoriaFiltro(c)}
+                  className={`rounded-full px-2 py-0.5 text-xs ${
+                    c === categoriaFiltro ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  {c ?? "Todas"}
+                </button>
               ))}
-            </datalist>
-            <button
-              onClick={() => editNote({ pinned: !selected.pinned })}
-              title={selected.pinned ? "Desafixar" : "Fixar no topo"}
-              className={`rounded p-1.5 hover:bg-zinc-100 dark:hover:bg-zinc-800 ${selected.pinned ? "text-violet-500" : "text-zinc-500"}`}
-            >
-              <Pin size={18} />
-            </button>
-            <button
-              onClick={() => exportNote(selected)}
-              title="Exportar .md"
-              className="rounded p-1.5 text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"
-            >
-              <Download size={18} />
-            </button>
-            <button
-              onClick={() => deleteNote(selected)}
-              title="Apagar"
-              className="rounded p-1.5 text-zinc-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-500/10"
-            >
-              <Trash2 size={18} />
-            </button>
-          </div>
-          <textarea
-            value={selected.content}
-            onChange={(e) => editNote({ content: e.target.value })}
-            placeholder="Escreva aqui..."
-            className="flex-1 resize-none bg-transparent p-4 leading-relaxed outline-none"
-          />
-          <div className="border-t border-zinc-200 px-4 py-1.5 text-xs text-zinc-500 dark:border-zinc-800 flex gap-4">
-            <span>
-              Caracteres: {[...texto].length}
-            </span>
-            <span>
-              Palavras: {palavras}
-            </span>
-          </div>
-        </main>
-      ) : (
-        <main className="grid flex-1 place-items-center text-zinc-500">
-          <button onClick={createNote} className="flex items-center gap-2 rounded-lg border border-dashed border-zinc-300 px-4 py-2 hover:border-violet-500 hover:text-violet-500 dark:border-zinc-700">
-            <Plus size={16} /> Nova nota
-          </button>
-        </main>
-      )}
+            </div>
+          )}
+          <ul className="flex-1 overflow-y-auto px-2 pb-2">
+            {filtered.map((n) => (
+              <li key={n.id}>
+                <button
+                  onClick={() => setSelectedId(n.id)}
+                  className={`w-full rounded px-2 py-1.5 text-left ${
+                    n.id === selectedId ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+                  }`}
+                >
+                  <div className="flex items-center gap-1 truncate text-sm font-medium">
+                    {n.pinned && <Pin size={12} className="shrink-0 text-primary" />}
+                    {n.title || "Sem título"}
+                  </div>
+                  <div className="truncate text-xs text-muted-foreground">{n.content.split("\n")[0] || "Vazia"}</div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </aside>
 
-      <Toaster richColors />
+        {selected ? (
+          <main className="flex flex-1 flex-col">
+            <div className="flex items-center gap-2 border-b border-border p-3">
+              <input
+                value={selected.title}
+                onChange={(e) => editNote({ title: e.target.value })}
+                placeholder="Título"
+                className="flex-1 bg-transparent text-xl font-semibold outline-none"
+              />
+              {/* datalist = native autocomplete with the existing categories */}
+              <input
+                value={selected.category ?? ""}
+                onChange={(e) => editNote({ category: e.target.value.trim() || null })}
+                placeholder="Categoria"
+                list="categorias"
+                className="w-32 rounded border border-input bg-transparent px-2 py-1 text-sm outline-none focus:border-ring"
+              />
+              <datalist id="categorias">
+                {categorias.map((c) => (
+                  <option key={c} value={c} />
+                ))}
+              </datalist>
+              <button
+                onClick={() => editNote({ pinned: !selected.pinned })}
+                title={selected.pinned ? "Desafixar" : "Fixar no topo"}
+                className={`rounded p-1.5 hover:bg-muted ${selected.pinned ? "text-primary" : "text-muted-foreground"}`}
+              >
+                <Pin size={18} />
+              </button>
+              <button
+                onClick={() => exportNote(selected)}
+                title="Exportar .md"
+                className="rounded p-1.5 text-muted-foreground hover:bg-muted"
+              >
+                <Download size={18} />
+              </button>
+              <button
+                onClick={() => deleteNote(selected)}
+                title="Apagar"
+                className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+              >
+                <Trash2 size={18} />
+              </button>
+            </div>
+            <textarea
+              value={selected.content}
+              onChange={(e) => editNote({ content: e.target.value })}
+              placeholder="Escreva aqui..."
+              className="flex-1 resize-none bg-transparent p-4 leading-relaxed outline-none"
+            />
+            <div className="border-t border-border px-4 py-1.5 text-xs text-muted-foreground flex gap-4">
+              <span>
+                Caracteres: {[...texto].length}
+              </span>
+              <span>
+                Palavras: {palavras}
+              </span>
+            </div>
+          </main>
+        ) : (
+          <main className="grid flex-1 place-items-center text-muted-foreground">
+            <button onClick={createNote} className="flex items-center gap-2 rounded-lg border border-dashed border-input px-4 py-2 hover:border-primary hover:text-primary">
+              <Plus size={16} /> Nova nota
+            </button>
+          </main>
+        )}
+
+        <Toaster richColors />
+      </div>
     </div>
   );
 }

@@ -1,0 +1,11 @@
+<!-- App icon: same as the splashscreen logo (lucide notebook-pen on a violet rounded square) -->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="284" fill="#7c5cff" />
+  <g transform="translate(256 256) scale(21.333)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
+    <path d="M8 3v18" />
+    <path d="M3 8h5" />
+    <path d="M3 16h5" />
+    <path d="m18.5 2.5 3 3L14 13l-4 1 1-4Z" />
+  </g>
+</svg>
