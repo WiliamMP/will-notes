@@ -40,6 +40,8 @@ export default function App() {
     return item.title.toLowerCase().includes(busca) || item.content.toLowerCase().includes(busca);
   });
   const selected = notes.find((n) => n.id === selectedId);
+  const texto = selected?.content.trim() ?? "";
+  const palavras = texto.split(/\s+/).filter(Boolean).length;
 
   async function createNote() {
     const now = new Date().toISOString();
@@ -81,7 +83,7 @@ export default function App() {
       fail(err);
     }
   }
-
+  
   return (
     <div className="flex h-screen bg-white text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       <aside className="flex w-64 shrink-0 flex-col border-r border-zinc-200 dark:border-zinc-800">
@@ -139,6 +141,14 @@ export default function App() {
             placeholder="Escreva aqui..."
             className="flex-1 resize-none bg-transparent p-4 leading-relaxed outline-none"
           />
+          <div className="border-t border-zinc-200 px-4 py-1.5 text-xs text-zinc-500 dark:border-zinc-800 flex gap-4">
+            <span>
+              Caracteres: {[...texto].length}
+            </span>
+            <span>
+              Palavras: {palavras}
+            </span>
+          </div>
         </main>
       ) : (
         <main className="grid flex-1 place-items-center text-zinc-500">
