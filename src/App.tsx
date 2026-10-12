@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { Download, NotebookPen, Pin, Plus, Trash2 } from "lucide-react";
 import { Toaster, toast } from "sonner";
@@ -23,8 +24,9 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [textoBusca, setTextoBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
-  // One pending save per note, so switching notes mid-typing never drops the previous save
-  const saveTimers = useRef(new Map<string, number>());
+  // One pending save per note, so switching notes mid-typing never drops the previous save.
+  // The note is kept next to its timer so pending saves can be flushed when the window closes.
+  const pendingSaves = useRef(new Map<string, { timer: number; note: Note }>());
 
   useEffect(() => {
     invoke<Note[]>("list_notes")
@@ -34,6 +36,26 @@ export default function App() {
       })
       .catch(fail)
       .finally(() => invoke("close_splash"));
+  }, []);
+
+  // Flush pending saves before the window closes; if one fails, keep the window open so nothing is lost
+  useEffect(() => {
+    const off = getCurrentWindow().onCloseRequested(async (e) => {
+      const saves = [...pendingSaves.current.values()].map(({ timer, note }) => {
+        clearTimeout(timer);
+        return invoke("save_note", { note });
+      });
+      pendingSaves.current.clear();
+      try {
+        await Promise.all(saves);
+      } catch (err) {
+        e.preventDefault();
+        fail(err);
+      }
+    });
+    return () => {
+      off.then((f) => f());
+    };
   }, []);
 
   // Ctrl+N creates a note. No dependency array: re-subscribes every render, so it always calls the
@@ -79,14 +101,15 @@ export default function App() {
     setNotes((ns) => ns.map((n) => (n.id === note.id ? note : n)));
 
     // Debounce: write to disk 400ms after the user stops typing
-    clearTimeout(saveTimers.current.get(note.id));
-    saveTimers.current.set(
-      note.id,
-      window.setTimeout(() => {
-        saveTimers.current.delete(note.id);
+    const pending = pendingSaves.current;
+    clearTimeout(pending.get(note.id)?.timer);
+    pending.set(note.id, {
+      note,
+      timer: window.setTimeout(() => {
+        pending.delete(note.id);
         invoke("save_note", { note }).catch(fail);
       }, 400),
-    );
+    });
   }
 
   async function exportNote(note: Note) {
@@ -100,7 +123,8 @@ export default function App() {
   async function deleteNote(note: Note) {
     const ok = await ask(`Apagar "${note.title || "Sem título"}"?`, { title: "will-notes", kind: "warning" });
     if (!ok) return;
-    clearTimeout(saveTimers.current.get(note.id));
+    clearTimeout(pendingSaves.current.get(note.id)?.timer);
+    pendingSaves.current.delete(note.id);
     try {
       await invoke("delete_note", { id: note.id });
       setNotes((ns) => ns.filter((n) => n.id !== note.id));
@@ -186,7 +210,12 @@ export default function App() {
               {/* datalist = native autocomplete with the existing categories */}
               <input
                 value={selected.category ?? ""}
-                onChange={(e) => editNote({ category: e.target.value.trim() || null })}
+                // Trim only on blur, so spaces typed between words ("Meu trabalho") are kept
+                onChange={(e) => editNote({ category: e.target.value || null })}
+                onBlur={() => {
+                  const trimmed = selected.category?.trim() || null;
+                  if (trimmed !== selected.category) editNote({ category: trimmed });
+                }}
                 placeholder="Categoria"
                 list="categorias"
                 className="w-32 rounded border border-input bg-transparent px-2 py-1 text-sm outline-none focus:border-ring"
