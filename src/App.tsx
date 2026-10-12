@@ -1,9 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
-import { ask } from "@tauri-apps/plugin-dialog";
 import { Download, NotebookPen, Pin, Plus, Trash2 } from "lucide-react";
+import { AnimatePresence, MotionConfig, motion } from "motion/react";
+import { Tooltip } from "radix-ui";
+import { Group, Panel, Separator, useDefaultLayout } from "react-resizable-panels";
 import { Toaster, toast } from "sonner";
+import { Button, ConfirmDialog, IconButton } from "./components/ui";
 import { dragWindow, WindowControls } from "./components/WindowControls";
 
 // Same shape as `Note` in src-tauri/src/notes.rs (serde keeps the snake_case names)
@@ -24,6 +27,8 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [textoBusca, setTextoBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
+  const [toDelete, setToDelete] = useState<Note | null>(null);
+  const layout = useDefaultLayout({ id: "will-notes-layout", storage: localStorage });
   // One pending save per note, so switching notes mid-typing never drops the previous save.
   // The note is kept next to its timer so pending saves can be flushed when the window closes.
   const pendingSaves = useRef(new Map<string, { timer: number; note: Note }>());
@@ -121,8 +126,6 @@ export default function App() {
   }
 
   async function deleteNote(note: Note) {
-    const ok = await ask(`Apagar "${note.title || "Sem título"}"?`, { title: "will-notes", kind: "warning" });
-    if (!ok) return;
     clearTimeout(pendingSaves.current.get(note.id)?.timer);
     pendingSaves.current.delete(note.id);
     try {
@@ -133,8 +136,11 @@ export default function App() {
       fail(err);
     }
   }
-  
+
   return (
+    // reducedMotion="user": animations turn off when Windows has "Animation effects" disabled
+    <MotionConfig reducedMotion="user">
+    <Tooltip.Provider delayDuration={300}>
     <div className="flex h-screen flex-col">
       <nav onMouseDown={dragWindow} className="flex h-10 shrink-0 items-end gap-1 border-b bg-sidebar pl-2 select-none">
         <button
@@ -149,15 +155,19 @@ export default function App() {
         <div className="my-2.5 ml-2 w-px self-stretch bg-border" />
         <WindowControls />
       </nav>
-      <div className="flex min-h-0 flex-1 bg-background text-foreground">
-        <aside className="flex w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar">
-          <header className="flex items-center justify-between p-3">
-            
-            <button onClick={createNote} title="Nova nota" className="rounded p-1.5 hover:bg-muted">
+      {/* Resizable sidebar; useDefaultLayout keeps the width in localStorage between sessions */}
+      <Group {...layout} className="min-h-0 flex-1 bg-background text-foreground">
+        <Panel id="sidebar" defaultSize={256} minSize={200} maxSize={420}>
+        <aside className="flex h-full flex-col bg-sidebar">
+          <header className="flex items-center justify-between py-2 pr-2 pl-3">
+            <span className="text-xs font-medium text-muted-foreground">
+              {notes.length} {notes.length === 1 ? "nota" : "notas"}
+            </span>
+            <IconButton label="Nova nota (Ctrl+N)" onClick={createNote}>
               <Plus size={18} />
-            </button>
+            </IconButton>
           </header>
-          <input 
+          <input
           value={textoBusca}
           placeholder="Pesquise o nome da nota"
           onChange={(e) => setTextoBusca( e.target.value )}
@@ -169,7 +179,7 @@ export default function App() {
                 <button
                   key={c ?? ""}
                   onClick={() => setCategoriaFiltro(c)}
-                  className={`rounded-full px-2 py-0.5 text-xs ${
+                  className={`rounded-full px-2 py-0.5 text-xs transition-colors ${
                     c === categoriaFiltro ? "bg-primary text-primary-foreground" : "bg-secondary hover:bg-accent hover:text-accent-foreground"
                   }`}
                 >
@@ -178,34 +188,53 @@ export default function App() {
               ))}
             </div>
           )}
-          <ul className="flex-1 overflow-y-auto px-2 pb-2">
-            {filtered.map((n) => (
-              <li key={n.id}>
-                <button
-                  onClick={() => setSelectedId(n.id)}
-                  className={`w-full rounded px-2 py-1.5 text-left ${
-                    n.id === selectedId ? "bg-accent text-accent-foreground" : "hover:bg-muted"
-                  }`}
+          <ul className="flex-1 overflow-x-hidden overflow-y-auto px-2 pb-2">
+            {/* layout="position" slides notes to their new place when the order changes (pin, edit) */}
+            <AnimatePresence initial={false}>
+              {filtered.map((n) => (
+                <motion.li
+                  key={n.id}
+                  layout="position"
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, x: -16 }}
+                  transition={{ duration: 0.15 }}
                 >
-                  <div className="flex items-center gap-1 truncate text-sm font-medium">
-                    {n.pinned && <Pin size={12} className="shrink-0 text-primary" />}
-                    {n.title || "Sem título"}
-                  </div>
-                  <div className="truncate text-xs text-muted-foreground">{n.content.split("\n")[0] || "Vazia"}</div>
-                </button>
-              </li>
-            ))}
+                  <button
+                    onClick={() => setSelectedId(n.id)}
+                    className={`w-full rounded px-2 py-1.5 text-left transition-colors ${
+                      n.id === selectedId ? "bg-accent text-accent-foreground" : "hover:bg-muted"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1 truncate text-sm font-medium">
+                      {n.pinned && <Pin size={12} className="shrink-0 text-primary" />}
+                      {n.title || "Sem título"}
+                    </div>
+                    <div className="truncate text-xs text-muted-foreground">{n.content.split("\n")[0] || "Vazia"}</div>
+                  </button>
+                </motion.li>
+              ))}
+            </AnimatePresence>
           </ul>
         </aside>
-
+        </Panel>
+        <Separator className="w-px bg-sidebar-border transition-colors outline-none hover:bg-primary focus-visible:bg-primary" />
+        <Panel id="editor" minSize={300}>
+        {/* key = note id: switching notes remounts the editor, which replays the fade-in */}
         {selected ? (
-          <main className="flex flex-1 flex-col">
-            <div className="flex items-center gap-2 border-b border-border p-3">
+          <motion.main
+            key={selected.id}
+            initial={{ opacity: 0, y: 4 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.15 }}
+            className="flex h-full flex-col"
+          >
+            <div className="flex items-center gap-1 border-b border-border p-3">
               <input
                 value={selected.title}
                 onChange={(e) => editNote({ title: e.target.value })}
                 placeholder="Título"
-                className="flex-1 bg-transparent text-xl font-semibold outline-none"
+                className="min-w-0 flex-1 bg-transparent text-xl font-semibold outline-none"
               />
               {/* datalist = native autocomplete with the existing categories */}
               <input
@@ -218,34 +247,26 @@ export default function App() {
                 }}
                 placeholder="Categoria"
                 list="categorias"
-                className="w-32 rounded border border-input bg-transparent px-2 py-1 text-sm outline-none focus:border-ring"
+                className="mr-1 w-32 rounded border border-input bg-transparent px-2 py-1 text-sm outline-none focus:border-ring"
               />
               <datalist id="categorias">
                 {categorias.map((c) => (
                   <option key={c} value={c} />
                 ))}
               </datalist>
-              <button
+              <IconButton
+                label={selected.pinned ? "Desafixar" : "Fixar no topo"}
                 onClick={() => editNote({ pinned: !selected.pinned })}
-                title={selected.pinned ? "Desafixar" : "Fixar no topo"}
-                className={`rounded p-1.5 hover:bg-muted ${selected.pinned ? "text-primary" : "text-muted-foreground"}`}
+                className={selected.pinned ? "text-primary hover:text-primary" : undefined}
               >
                 <Pin size={18} />
-              </button>
-              <button
-                onClick={() => exportNote(selected)}
-                title="Exportar .md"
-                className="rounded p-1.5 text-muted-foreground hover:bg-muted"
-              >
+              </IconButton>
+              <IconButton label="Exportar .md" onClick={() => exportNote(selected)}>
                 <Download size={18} />
-              </button>
-              <button
-                onClick={() => deleteNote(selected)}
-                title="Apagar"
-                className="rounded p-1.5 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-              >
+              </IconButton>
+              <IconButton label="Apagar" variant="danger" onClick={() => setToDelete(selected)}>
                 <Trash2 size={18} />
-              </button>
+              </IconButton>
             </div>
             <textarea
               value={selected.content}
@@ -261,18 +282,33 @@ export default function App() {
                 Palavras: {palavras}
               </span>
             </div>
-          </main>
+          </motion.main>
         ) : (
-          <main className="grid flex-1 place-items-center text-muted-foreground">
-            <button onClick={createNote} className="flex items-center gap-2 rounded-lg border border-dashed border-input px-4 py-2 hover:border-primary hover:text-primary">
+          <motion.main
+            key="empty"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="grid h-full place-items-center text-muted-foreground"
+          >
+            <Button variant="outline" onClick={createNote} className="border-dashed hover:border-primary hover:text-primary">
               <Plus size={16} /> Nova nota
-            </button>
-          </main>
+            </Button>
+          </motion.main>
         )}
+        </Panel>
+      </Group>
 
-        <Toaster richColors />
-      </div>
+      <ConfirmDialog
+        title={toDelete && `Apagar "${toDelete.title || "Sem título"}"?`}
+        description="Essa ação não pode ser desfeita."
+        confirmLabel="Apagar"
+        onConfirm={() => toDelete && deleteNote(toDelete)}
+        onCancel={() => setToDelete(null)}
+      />
+      <Toaster richColors />
     </div>
+    </Tooltip.Provider>
+    </MotionConfig>
   );
 }
 
