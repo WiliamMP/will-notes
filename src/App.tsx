@@ -8,17 +8,7 @@ import { Group, Panel, Separator, useDefaultLayout } from "react-resizable-panel
 import { Toaster, toast } from "sonner";
 import { Button, ConfirmDialog, IconButton } from "./components/ui";
 import { dragWindow, WindowControls } from "./components/WindowControls";
-
-// Same shape as `Note` in src-tauri/src/notes.rs (serde keeps the snake_case names)
-type Note = {
-  id: string;
-  title: string;
-  content: string;
-  category: string | null;
-  pinned: boolean;
-  created_at: string;
-  updated_at: string;
-};
+import { newestFirst, type Note } from "./notes";
 
 const fail = (err: unknown) => toast.error(String(err));
 
@@ -311,7 +301,3 @@ export default function App() {
     </MotionConfig>
   );
 }
-
-// Pinned first, then newest. ISO timestamps sort correctly as plain strings
-const newestFirst = (ns: Note[]) =>
-  [...ns].sort((a, b) => Number(b.pinned) - Number(a.pinned) || b.updated_at.localeCompare(a.updated_at));

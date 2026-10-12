@@ -50,6 +50,14 @@ O instalador fica em `src-tauri/target/release/bundle/`.
 
 ## Testes
 
+Frontend (Vitest):
+
+```bash
+npm test
+```
+
+Backend (Rust):
+
 ```bash
 cd src-tauri
 cargo test
