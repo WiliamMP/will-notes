@@ -6,7 +6,7 @@ import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { Tooltip } from "radix-ui";
 import { Group, Panel, Separator, useDefaultLayout } from "react-resizable-panels";
 import { Toaster, toast } from "sonner";
-import { Button, ConfirmDialog, IconButton } from "./components/ui";
+import { Button, IconButton } from "./components/ui";
 import { dragWindow, WindowControls } from "./components/WindowControls";
 import { newestFirst, type Note } from "./notes";
 
@@ -17,11 +17,11 @@ export default function App() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [textoBusca, setTextoBusca] = useState("");
   const [categoriaFiltro, setCategoriaFiltro] = useState<string | null>(null);
-  const [toDelete, setToDelete] = useState<Note | null>(null);
   const layout = useDefaultLayout({ id: "will-notes-layout", storage: localStorage });
   // One pending save per note, so switching notes mid-typing never drops the previous save.
   // The note is kept next to its timer so pending saves can be flushed when the window closes.
   const pendingSaves = useRef(new Map<string, { timer: number; note: Note }>());
+  const searchRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     invoke<Note[]>("list_notes")
@@ -53,13 +53,17 @@ export default function App() {
     };
   }, []);
 
-  // Ctrl+N creates a note. No dependency array: re-subscribes every render, so it always calls the
+  // Ctrl+N creates a note, Ctrl+F focuses the search. No dependency array: re-subscribes every render, so it always calls the
   // latest createNote (which reads categoriaFiltro). The cleanup removes the previous listener.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
       if (e.ctrlKey && e.key.toLowerCase() === "n") {
         e.preventDefault(); // WebView2 would otherwise open a new window
         createNote();
+      } else if (e.ctrlKey && e.key.toLowerCase() === "f") {
+        e.preventDefault(); // WebView2 would otherwise open its find bar
+        searchRef.current?.focus();
+        searchRef.current?.select();
       }
     }
     window.addEventListener("keydown", onKey);
@@ -115,13 +119,30 @@ export default function App() {
     }
   }
 
+  // Deletes right away (so closing the app keeps it deleted); "Desfazer" saves the note back
   async function deleteNote(note: Note) {
     clearTimeout(pendingSaves.current.get(note.id)?.timer);
     pendingSaves.current.delete(note.id);
+    // Select the next note in the visible list, or the previous one if this was the last
+    const i = filtered.findIndex((n) => n.id === note.id);
+    const neighbor = filtered[i + 1] ?? filtered[i - 1];
     try {
       await invoke("delete_note", { id: note.id });
       setNotes((ns) => ns.filter((n) => n.id !== note.id));
-      if (selectedId === note.id) setSelectedId(null);
+      if (selectedId === note.id) setSelectedId(neighbor?.id ?? null);
+      toast(`"${note.title || "Sem título"}" apagada`, {
+        action: { label: "Desfazer", onClick: () => restoreNote(note) },
+      });
+    } catch (err) {
+      fail(err);
+    }
+  }
+
+  async function restoreNote(note: Note) {
+    try {
+      await invoke("save_note", { note });
+      setNotes((ns) => [...ns, note]);
+      setSelectedId(note.id);
     } catch (err) {
       fail(err);
     }
@@ -158,9 +179,18 @@ export default function App() {
             </IconButton>
           </header>
           <input
+          ref={searchRef}
           value={textoBusca}
-          placeholder="Pesquise o nome da nota"
-          onChange={(e) => setTextoBusca( e.target.value )}
+          placeholder="Buscar notas (Ctrl+F)"
+          aria-label="Buscar notas"
+          onChange={(e) => setTextoBusca(e.target.value)}
+          // Esc clears the search and leaves the field
+          onKeyDown={(e) => {
+            if (e.key === "Escape") {
+              setTextoBusca("");
+              e.currentTarget.blur();
+            }
+          }}
           className="mx-2 mb-2 rounded border border-input bg-transparent px-2 py-1 text-sm outline-none focus:border-ring"
           type="text" />
           {categorias.length > 0 && (
@@ -254,7 +284,7 @@ export default function App() {
               <IconButton label="Exportar .md" onClick={() => exportNote(selected)}>
                 <Download size={18} />
               </IconButton>
-              <IconButton label="Apagar" variant="danger" onClick={() => setToDelete(selected)}>
+              <IconButton label="Apagar" variant="danger" onClick={() => deleteNote(selected)}>
                 <Trash2 size={18} />
               </IconButton>
             </div>
@@ -288,13 +318,6 @@ export default function App() {
         </Panel>
       </Group>
 
-      <ConfirmDialog
-        title={toDelete && `Apagar "${toDelete.title || "Sem título"}"?`}
-        description="Essa ação não pode ser desfeita."
-        confirmLabel="Apagar"
-        onConfirm={() => toDelete && deleteNote(toDelete)}
-        onCancel={() => setToDelete(null)}
-      />
       <Toaster richColors />
     </div>
     </Tooltip.Provider>
