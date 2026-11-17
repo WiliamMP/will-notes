@@ -1,0 +1,40 @@
+# Builds the Windows installer and publishes it as a GitHub Release when a
+# version tag is pushed (git tag v0.2.0 && git push origin v0.2.0).
+# `will install will-notes` downloads the -setup.exe from the latest release.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: will-notes ${{ github.ref_name }}
+          releaseBody: Instale pelo arquivo -setup.exe ou com `will install will-notes`.
+          releaseDraft: false
+          prerelease: false
